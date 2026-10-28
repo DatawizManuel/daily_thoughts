@@ -7,10 +7,12 @@
    5. a backup survives save → restore unchanged and backups of other Stoic Ranger apps are refused,
    6. every favourite id in the test data is still a quote in the app (quote ids are permanent, content/quote-ids.json),
    7. every author has a coin, a life story and an author page, every quote renders its one-pager,
-   8. all screens open without script errors. */
+   8. all screens open without script errors,
+   9. the web password locks the app once, then is remembered (set DT_PASS when the password changes). */
 const http = require('http'), fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
 const WWW = path.join(__dirname, '..', 'app', 'src', 'main', 'assets', 'www');
+const PASS = (process.env.DT_PASS || (fs.existsSync(path.join(__dirname, '.web-password')) ? fs.readFileSync(path.join(__dirname, '.web-password'), 'utf8') : '')).trim();   // never commit the password: tools/.web-password is gitignored
 const IDS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'content', 'quote-ids.json'), 'utf8'));
 const srv = http.createServer((q, r) => { const f = path.join(WWW, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, d) => { r.writeHead(e ? 404 : 200, f.endsWith('.svg') ? { 'content-type': 'image/svg+xml' } : {}); r.end(d); }); });
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
@@ -21,11 +23,24 @@ srv.listen(0, async () => {
   const page = async (store) => {
     const p = await b.newPage(); p.on('pageerror', e => errs.push(e.message));
     await p.goto(url.replace('index.html', 'css/app.css'));
-    await p.evaluate(s => { localStorage.clear(); for (const k in s) localStorage.setItem(k, s[k]); }, store);
+    await p.evaluate(s => { localStorage.clear(); for (const k in s) localStorage.setItem(k, s[k]); }, Object.assign({ 'dt.unlocked': '2026-10-28' }, store));
     await p.goto(url); await p.waitForTimeout(400); return p;
   };
+  // web password: locked until the right password, then remembered across restarts (and app updates)
+  let p = await page({ 'dt.unlocked': '' });
+  await p.evaluate(() => localStorage.removeItem('dt.unlocked')); await p.reload(); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => !!document.querySelector('#lPass') && !document.querySelector('.one')), 'web app locked before the password');
+  await p.fill('#lPass', 'wrong'); await p.click('#lForm button'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !!document.querySelector('#lPass') && !localStorage.getItem('dt.unlocked')), 'wrong password refused');
+  ok(!!PASS, 'web password known to the test (tools/.web-password or DT_PASS)');
+  await p.fill('#lPass', PASS); await p.click('#lForm button'); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => !document.querySelector('#lPass') && !!localStorage.getItem('dt.unlocked')), 'right password opens the app');
+  await p.reload(); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => !document.querySelector('#lPass')), 'password remembered after restart');
+  await p.close();
+
   const old = { schema: 1, favs: ['q-marcus-aurelius-01', { id: 'q-seneca-03', at: '2026-10-27T08:00:00Z', note: 'kept' }, 'q-marcus-aurelius-01', 'q-gone-99'], settings: { theme: 'dark' }, future: 'kept' };
-  let p = await page({ 'dt.db': JSON.stringify(old) });
+  p = await page({ 'dt.db': JSON.stringify(old) });
   let d = await p.evaluate(() => DT.db);
   ok(d.favs.length === 3 && d.favs.every(f => f.id), 'favourites kept (old string list converted, duplicate merged)');
   ok(d.favs.some(f => f.id === 'q-gone-99'), 'favourite of a quote missing in this version is kept');

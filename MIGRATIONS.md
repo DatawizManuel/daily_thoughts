@@ -19,3 +19,4 @@ Manuel's rule: an app update must never lose data on the phone.
 |---|---|---|---|
 | 0.1.0 | 1 | 1 | first version |
 | 0.1.1 | 2 | 1 | web app for iPhone / iPad, no data change |
+| 0.1.2 | 3 | 1 | web password (marker `dt.unlocked`, outside db), no data change |

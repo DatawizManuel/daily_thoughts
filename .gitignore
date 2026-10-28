@@ -3,3 +3,4 @@ __pycache__/
 # signing keys stay off GitHub (the debug key is shared by all Stoic Ranger test builds; keep it on Manuel's PC)
 *.keystore
 *.jks
+tools/.web-password

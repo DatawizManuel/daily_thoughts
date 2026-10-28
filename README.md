@@ -20,7 +20,7 @@ Stoic Ranger Web V1.0 colours (stone and ranger green in light, charcoal and tan
 
 ## Install the test build
 
-1. Copy `sr-daily-thoughts-0.1.1-debug.apk` to the phone and open it in the Files app; allow installs from that app.
+1. Copy `sr-daily-thoughts-0.1.2-debug.apk` to the phone and open it in the Files app; allow installs from that app.
 2. Play Protect may warn about an unknown app: *Install anyway* (debug build signed with the test key).
 3. Open **SR_Daily Thoughts** and tap *Read today's thought*.
 
@@ -30,6 +30,12 @@ The same app, built from the same `assets/www`, as a web app for Safari. Open it
 **Share → Add to Home Screen**: it gets the SR_Daily Thoughts icon, opens full-screen, works offline (a service
 worker keeps every file on the device) and keeps the favourites in the app's own storage (home-screen web apps are
 not cleared by Safari). Backup, share (iOS share sheet) and print / PDF work as on Android.
+**Password (web only):** the web app asks once per device for a password; after that the device stays unlocked,
+also after updates (marker `dt.unlocked` in the page storage, separate from favourites and the offline cache). Only
+the SHA-256 of the password is in `js/app.js` (`DT.PASS_SHA256`); the password itself is in `tools/.web-password`
+(gitignored, kept in the source zips on Manuel's PC). To change it: new hash in `DT.PASS_SHA256` and the new
+password in `tools/.web-password`; devices already unlocked stay unlocked. It keeps casual visitors out; the files
+stay publicly readable on GitHub Pages.
 Web address: **https://datawizmanuel.github.io/daily_thoughts/** (GitHub Pages, from `docs/` on `main` of
 DatawizManuel/daily_thoughts). Build: `bash tools/make-web.sh` → `build/web/`, `docs/` and
 `build/outputs/sr-daily-thoughts-<version>-web.zip`; commit and push `docs/` to publish. `web/` holds the manifest, the service worker template and the icons.
@@ -68,6 +74,8 @@ Before each release: `node tools/test-data-safety.js` must print only PASS.
 
 ## Changes
 
+- **0.1.2** (2026-10-28): password screen for the web app, asked once per device and remembered across updates.
+  Android unchanged apart from the version.
 - **0.1.1** (2026-10-28): web app for iPhone / iPad (Add to Home Screen, offline, share sheet for backups).
   Android unchanged apart from the version.
 - **0.1.0** (2026-10-27): first version. Quote of the day, 24 authors with coins and life stories, 411 quote
